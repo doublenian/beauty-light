@@ -62,7 +62,7 @@ const AppContent = () => {
           showPanel ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="h-full pt-16 pb-4">
+        <div className="pt-16 h-full">
           <ControlPanel />
         </div>
       </div>
@@ -73,12 +73,12 @@ const AppContent = () => {
       </div>
 
       {/* Capture Button */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40">
+      <div className="absolute bottom-8 left-1/2 z-40 -translate-x-1/2">
         <button
           className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300
             ${isCapturing 
-              ? 'bg-red-500/80 scale-95' 
-              : 'bg-white/20 hover:bg-white/30 scale-100'
+              ? 'scale-95 bg-red-500/80' 
+              : 'scale-100 bg-white/20 hover:bg-white/30'
             }
             backdrop-blur-md border-2 border-white/30 shadow-lg
             before:absolute before:inset-1 before:rounded-full before:bg-white/10 before:backdrop-blur-md

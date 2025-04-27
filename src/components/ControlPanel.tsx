@@ -4,14 +4,15 @@ import { useCamera } from '../contexts/CameraContext';
 import PresetsPanel from './PresetsPanel';
 import CustomPanel from './CustomPanel';
 import FavoritesPanel from './FavoritesPanel';
-import { Palette, Sliders, Heart, Image, X } from 'lucide-react';
+import { Palette, Sliders, Heart, Image, X, Coffee } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
-
+import zanshang from '../assets/images/zanshang.jpg';
 type Tab = 'presets' | 'custom' | 'favorites' | 'photos';
 
 const ControlPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('presets');
   const { capturedPhotos, previewPhoto, setPreviewPhoto } = useCamera();
+  const [showDonation, setShowDonation] = useState(false);
   
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
@@ -23,8 +24,18 @@ const ControlPanel: React.FC = () => {
     trackEvent('Photos', photo ? 'open_preview' : 'close_preview');
   };
   
+  const handleDonation = () => {
+    setShowDonation(true);
+    trackEvent('UI', 'open_donation');
+  };
+  
+  const handleCloseDonation = () => {
+    setShowDonation(false);
+    trackEvent('UI', 'close_donation');
+  };
+  
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col h-full">
       {/* Tab Navigation */}
       <div className="flex border-b border-white/10">
         <TabButton 
@@ -55,17 +66,17 @@ const ControlPanel: React.FC = () => {
       </div>
       
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="overflow-y-auto flex-1 p-4">
         {activeTab === 'presets' && <PresetsPanel />}
         {activeTab === 'custom' && <CustomPanel />}
         {activeTab === 'favorites' && <FavoritesPanel />}
         {activeTab === 'photos' && (
           <div>
-            <h3 className="text-sm text-white/80 mb-3">已拍摄的照片</h3>
+            <h3 className="mb-3 text-sm text-white/80">已拍摄的照片</h3>
             {capturedPhotos.length === 0 ? (
-              <div className="text-center py-6">
+              <div className="py-6 text-center">
                 <p className="text-white/70">还没有拍摄照片</p>
-                <p className="text-xs text-white/50 mt-2">
+                <p className="mt-2 text-xs text-white/50">
                   点击拍照按钮开始拍摄
                 </p>
               </div>
@@ -82,7 +93,7 @@ const ControlPanel: React.FC = () => {
                     <img 
                       src={photo} 
                       alt={`照片 ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="object-cover w-full h-full"
                     />
                   </button>
                 ))}
@@ -91,15 +102,26 @@ const ControlPanel: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {/* Donation Button */}
+      <div className="px-4 py-3 border-t border-white/10">
+        <button 
+          className="flex items-center transition-colors text-white/70 hover:text-white"
+          onClick={handleDonation}
+        >
+          <Coffee size={16} className="mr-2" />
+          <span className="text-sm">给开发者一点鼓励吧</span>
+        </button>
+      </div>
 
       {/* Photo Preview */}
       {previewPhoto && (
         <div 
-          className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center"
+          className="flex fixed inset-0 z-50 justify-center items-center backdrop-blur-sm bg-black/90"
           onClick={() => handlePreviewPhoto(null)}
         >
           <button 
-            className="absolute top-4 right-4 p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+            className="absolute top-4 right-4 p-2 rounded-full transition-colors bg-black/50 hover:bg-black/70"
             onClick={(e) => {
               e.stopPropagation();
               handlePreviewPhoto(null);
@@ -110,8 +132,39 @@ const ControlPanel: React.FC = () => {
           <img 
             src={previewPhoto} 
             alt="预览" 
-            className="max-w-full max-h-full object-contain p-4"
+            className="object-contain p-4 max-w-full max-h-full"
           />
+        </div>
+      )}
+      
+      {/* Donation Preview */}
+      {showDonation && (
+        <div 
+          className="flex fixed inset-0 z-50 justify-center items-center backdrop-blur-sm bg-black/90"
+          onClick={handleCloseDonation}
+        >
+          <div 
+            className="flex flex-col items-center p-6 max-w-xs rounded-2xl border backdrop-blur-md bg-white/10 border-white/20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-4 text-lg font-medium text-white">给解念念的赞赏码</h3>
+            <div className="p-2 mb-4 bg-white rounded-lg">
+              <img 
+                src={zanshang}  
+                alt="赞赏码" 
+                className="w-full max-w-[200px]"
+              />
+            </div>
+            <p className="mb-4 text-sm text-center text-white/70">
+              您的支持是我继续开发的动力 ❤️
+            </p>
+            <button 
+              className="px-4 py-2 text-white rounded-lg transition-colors bg-white/20 hover:bg-white/30"
+              onClick={handleCloseDonation}
+            >
+              关闭
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -130,11 +183,11 @@ const TabButton: React.FC<TabButtonProps> = ({ isActive, onClick, icon, label, b
   return (
     <button
       className={`flex-1 flex flex-col items-center py-3 px-2 transition-colors relative
-        ${isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white/90'}`}
+        ${isActive ? 'text-white bg-white/10' : 'text-white/60 hover:text-white/90'}`}
       onClick={onClick}
     >
       {icon}
-      <span className="text-xs mt-1">{label}</span>
+      <span className="mt-1 text-xs">{label}</span>
       {badge !== undefined && (
         <span className="absolute top-2 right-2 min-w-[18px] h-[18px] rounded-full bg-white/20 
           text-xs flex items-center justify-center px-1">
