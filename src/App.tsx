@@ -68,7 +68,7 @@ const AppContent = () => {
       </div>
 
       {/* Camera View */}
-      <div className="absolute top-4 right-4 w-[100px] h-[100px] rounded-lg overflow-hidden shadow-lg z-30">
+      <div className="absolute top-4 right-4 w-[100px] h-[100px] rounded-lg overflow-hidden shadow-lg z-30" data-camera-container>
         <CameraView />
       </div>
 
