@@ -3,6 +3,7 @@ import CameraView from './components/CameraView';
 import { LightingProvider } from './contexts/LightingContext';
 import { CameraProvider } from './contexts/CameraContext';
 import { FavoritesProvider } from './contexts/FavoritesContext';
+import { GuideProvider } from './contexts/GuideContext';
 import { useLighting } from './contexts/LightingContext';
 import { useCamera } from './contexts/CameraContext';
 import { Menu, Camera } from 'lucide-react';
@@ -115,7 +116,9 @@ function App() {
     <FavoritesProvider>
       <CameraProvider>
         <LightingProvider>
+          <GuideProvider>
           <AppContent />
+          </GuideProvider>
         </LightingProvider>
       </CameraProvider>
     </FavoritesProvider>

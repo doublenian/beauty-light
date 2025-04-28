@@ -2,35 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import { useCamera } from '../contexts/CameraContext';
 import { useLighting } from '../contexts/LightingContext';
-import CameraViewHint from './CameraViewHint';
-
-// 本地存储键
-const CAMERA_HINT_SHOWN_KEY = 'beauty-light-camera-hint-shown';
+import { useGuide } from '../contexts/GuideContext';
 
 const CameraView: React.FC = () => {
   const { videoRef, isLoading, error } = useCamera();
   const { activePreset } = useLighting();
+  const { checkAllHintsShown } = useGuide();
   const [expanded, setExpanded] = useState(false);
-  const [showCameraHint, setShowCameraHint] = useState(false);
-  
-  // 检查是否已经显示过提示
-  useEffect(() => {
-    const hasShownHint = sessionStorage.getItem(CAMERA_HINT_SHOWN_KEY) === 'true';
-    
-    if (!hasShownHint) {
-      // 延迟一点时间显示提示，以便页面先渲染
-      const timer = setTimeout(() => {
-        setShowCameraHint(true);
-      }, 1500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, []);
-  
-  const handleCameraHintClose = () => {
-    setShowCameraHint(false);
-    sessionStorage.setItem(CAMERA_HINT_SHOWN_KEY, 'true');
-  };
   
   // 点击切换大小
   const toggleView = () => {
@@ -39,24 +17,41 @@ const CameraView: React.FC = () => {
     // 修改父元素样式
     const parentElement = document.querySelector('[data-camera-container]');
     if (parentElement) {
-      // 使用普通过渡动画
-      parentElement.classList.remove('spring-animation');
-      parentElement.classList.add('normal-animation');
+      // 使用弹性动画
+      parentElement.classList.remove('normal-animation');
+      parentElement.classList.add('spring-animation');
       
+      // 添加过渡开始的缩放效果
       if (!expanded) {
-        // 放大 - 只占屏幕高度的一半
-        parentElement.classList.remove('top-4', 'right-4', 'w-[100px]', 'h-[100px]');
-        parentElement.classList.add('top-1/4', 'left-1/2', '-translate-x-1/2', 'w-auto', 'h-1/2', 'aspect-square', 'z-50');
+        // 先添加一点缩放效果
+        (parentElement as HTMLElement).style.transform = 'scale(0.95)';
+        
+        // 放大 - 只改变宽高，保持位置不变
+        parentElement.classList.remove('w-[100px]', 'h-[100px]');
+        parentElement.classList.add('w-[300px]', 'h-[300px]', 'z-50');
+        
+        // 延迟重置变换
+        setTimeout(() => {
+          (parentElement as HTMLElement).style.transform = '';
+        }, 50);
       } else {
+        // 先添加一点缩放效果
+        (parentElement as HTMLElement).style.transform = 'scale(1.05)';
+        
         // 恢复原始大小
-        parentElement.classList.remove('top-1/4', 'left-1/2', '-translate-x-1/2', 'w-auto', 'h-1/2', 'aspect-square', 'z-50');
-        parentElement.classList.add('top-4', 'right-4', 'w-[100px]', 'h-[100px]');
+        parentElement.classList.remove('w-[300px]', 'h-[300px]', 'z-50');
+        parentElement.classList.add('w-[100px]', 'h-[100px]');
+        
+        // 延迟重置变换
+        setTimeout(() => {
+          (parentElement as HTMLElement).style.transform = '';
+        }, 50);
       }
       
       // 动画结束后移除动画类
       setTimeout(() => {
-        parentElement.classList.remove('normal-animation');
-      }, 500);
+        parentElement.classList.remove('spring-animation');
+      }, 800); // 延长动画时间
     }
   };
   
@@ -79,7 +74,7 @@ const CameraView: React.FC = () => {
 
   return (
     <div 
-      className="relative overflow-hidden w-full h-full bg-black"
+      className="overflow-hidden relative w-full h-full bg-black"
       {...handlers}
       onClick={toggleView}
     >
@@ -119,15 +114,9 @@ const CameraView: React.FC = () => {
         />
       </div>
       
-      {/* 相机放大提示 */}
-      <CameraViewHint 
-        show={showCameraHint} 
-        onClose={handleCameraHintClose}
-      />
-      
       {expanded && (
         <button 
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-black/50 rounded-full text-white"
+          className="flex absolute top-4 right-4 justify-center items-center w-8 h-8 text-white rounded-full bg-black/50"
           onClick={(e) => {
             e.stopPropagation();
             toggleView();

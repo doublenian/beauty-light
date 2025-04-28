@@ -1,28 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useLighting } from '../contexts/LightingContext';
 import { useCamera } from '../contexts/CameraContext';
+import { useGuide, PHOTOS_HINT_SHOWN_KEY } from '../contexts/GuideContext';
 import PresetsPanel from './PresetsPanel';
 import CustomPanel from './CustomPanel';
 import FavoritesPanel from './FavoritesPanel';
 import LongPressHint from './LongPressHint';
-import { Palette, Sliders, Heart, Image, X, Coffee } from 'lucide-react';
+import { Palette, Sliders, Heart, Image, X, Coffee, HelpCircle } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
 import zanshang from '../assets/images/zanshang.jpg';
 
-type Tab = 'presets' | 'custom' | 'favorites' | 'photos';
-
-// 本地存储键
-const PHOTOS_HINT_SHOWN_KEY = 'beauty-light-photos-hint-shown';
+type Tab = 'presets' | 'custom' | 'favorites' | 'photos' | 'settings';
 
 const ControlPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('presets');
   const { capturedPhotos, previewPhoto, setPreviewPhoto } = useCamera();
+  const { isGuideEnabled, toggleGuide, checkAllHintsShown, clearGuideHistory } = useGuide();
   const [showDonation, setShowDonation] = useState(false);
   const [showLongPressHint, setShowLongPressHint] = useState(false);
   
   // 检查是否已经显示过提示
   useEffect(() => {
-    const hasShownHint = sessionStorage.getItem(PHOTOS_HINT_SHOWN_KEY) === 'true';
+    const hasShownHint = localStorage.getItem(PHOTOS_HINT_SHOWN_KEY) === 'true';
     
     // 如果有照片且从未显示过提示，则在切换到相册标签时显示提示
     if (activeTab === 'photos' && capturedPhotos.length > 0 && !hasShownHint) {
@@ -32,7 +31,10 @@ const ControlPanel: React.FC = () => {
   
   const handleLongPressHintClose = () => {
     setShowLongPressHint(false);
-    sessionStorage.setItem(PHOTOS_HINT_SHOWN_KEY, 'true');
+    localStorage.setItem(PHOTOS_HINT_SHOWN_KEY, 'true');
+    
+    // 检查是否所有提示都已显示，如果是则自动关闭引导开关
+    checkAllHintsShown();
   };
   
   const handleTabChange = (tab: Tab) => {
@@ -60,8 +62,13 @@ const ControlPanel: React.FC = () => {
     e.preventDefault();
     // 这里可以实现实际的保存到相册功能
     // 为演示目的，仅显示提示
-    alert('照片已保存到相册');
     trackEvent('Photos', 'save_to_gallery');
+  };
+  
+  // 切换引导状态
+  const handleToggleGuide = () => {
+    toggleGuide(!isGuideEnabled);
+    trackEvent('Settings', 'toggle_guide', !isGuideEnabled ? 'enabled' : 'disabled');
   };
   
   const TabButton: React.FC<{
@@ -119,6 +126,12 @@ const ControlPanel: React.FC = () => {
           label="相册"
           badge={capturedPhotos.length > 0 ? capturedPhotos.length : undefined}
         />
+        <TabButton 
+          isActive={activeTab === 'settings'} 
+          onClick={() => handleTabChange('settings')}
+          icon={<HelpCircle size={20} />}
+          label="设置"
+        />
       </div>
       
       {/* Tab Content */}
@@ -168,18 +181,62 @@ const ControlPanel: React.FC = () => {
             />
           </div>
         )}
+        
+        {activeTab === 'settings' && (
+          <div>
+            <h3 className="mb-3 text-sm text-white/80">应用设置</h3>
+            
+            <div className="p-4 rounded-lg bg-white/5">
+              {/* 引导提示 */}
+              <div className="flex flex-col mb-2">
+                <div className="mb-2">
+                  <h4 className="font-medium">引导提示</h4>
+                  <p className="text-xs text-white/60">重新查看应用功能引导</p>
+                </div>
+                <button
+                  className="px-4 py-2 mt-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={() => {
+                    clearGuideHistory();
+                    toggleGuide(true);
+                    trackEvent('Settings', 'reset_guide');
+                  }}
+                >
+                  重新启用引导提示
+                </button>
+              </div>
+              
+              <p className="mt-4 text-xs text-white/70">
+                点击后将在下次使用相关功能时显示引导提示
+              </p>
+            </div>
+            
+            <div className="mt-4">
+              <button
+                className="p-3 w-full text-sm rounded-lg transition-colors bg-white/10 hover:bg-white/20"
+                onClick={handleDonation}
+              >
+                <div className="flex justify-center items-center">
+                  <Coffee size={16} className="mr-2" />
+                  <span>支持开发者</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       
-      {/* Donation Button */}
-      <div className="px-4 py-3 border-t border-white/10">
-        <button 
-          className="flex items-center transition-colors text-white/70 hover:text-white"
-          onClick={handleDonation}
-        >
-          <Coffee size={16} className="mr-2" />
-          <span className="text-sm">给开发者一点鼓励吧</span>
-        </button>
-      </div>
+      {/* Donation Button (只在非设置页面显示) */}
+      {activeTab !== 'settings' && (
+        <div className="px-4 py-3 border-t border-white/10">
+          <button 
+            className="flex items-center transition-colors text-white/70 hover:text-white"
+            onClick={handleDonation}
+          >
+            <Coffee size={16} className="mr-2" />
+            <span className="text-sm">给开发者一点鼓励吧</span>
+          </button>
+        </div>
+      )}
 
       {/* Photo Preview */}
       {previewPhoto && (

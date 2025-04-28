@@ -2,35 +2,40 @@ import React, { useState, useEffect } from 'react';
 import { useLighting } from '../contexts/LightingContext';
 import { useFavorites } from '../contexts/FavoritesContext';
 import { Preset } from '../contexts/LightingContext';
+import { useGuide, LIGHTING_HINT_SHOWN_KEY } from '../contexts/GuideContext';
 import { Heart } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
 import LightingEffectHint from './LightingEffectHint';
-
-// 本地存储键
-const LIGHTING_HINT_SHOWN_KEY = 'beauty-light-lighting-hint-shown';
 
 const PresetsPanel: React.FC = () => {
   const { presets, activePreset, setActivePreset } = useLighting();
   const { addToFavorites, isFavorite } = useFavorites();
   const [showLightingHint, setShowLightingHint] = useState(false);
+  const { isGuideEnabled, checkAllHintsShown } = useGuide();
   
   // 检查是否已经显示过提示
   useEffect(() => {
-    const hasShownHint = sessionStorage.getItem(LIGHTING_HINT_SHOWN_KEY) === 'true';
+    const hasShownHint = localStorage.getItem(LIGHTING_HINT_SHOWN_KEY) === 'true';
     
-    if (!hasShownHint) {
+    if (!hasShownHint && isGuideEnabled) {
       // 延迟一点时间显示提示，以便页面先渲染
       const timer = setTimeout(() => {
         setShowLightingHint(true);
       }, 1000);
       
       return () => clearTimeout(timer);
+    } else if (!isGuideEnabled && showLightingHint) {
+      // 如果引导被禁用但提示正在显示，则关闭提示
+      setShowLightingHint(false);
     }
-  }, []);
+  }, [isGuideEnabled, showLightingHint]);
   
   const handleLightingHintClose = () => {
     setShowLightingHint(false);
-    sessionStorage.setItem(LIGHTING_HINT_SHOWN_KEY, 'true');
+    localStorage.setItem(LIGHTING_HINT_SHOWN_KEY, 'true');
+    
+    // 检查是否所有提示都已显示，如果是则自动关闭引导开关
+    checkAllHintsShown();
   };
   
   const handlePresetChange = (preset: Preset) => {
@@ -45,8 +50,8 @@ const PresetsPanel: React.FC = () => {
   
   return (
     <div className="relative">
-      <h3 className="mb-3 text-sm text-white/80">选择光效</h3>
-      <div id="presets-list" className="flex overflow-x-auto pb-2 space-x-3 snap-x">
+      <h3 className="text-sm text-white/80 mb-3">选择光效</h3>
+      <div id="presets-list" className="flex space-x-3 overflow-x-auto pb-2 snap-x">
         {presets.map((preset: Preset) => (
           <div key={preset.id} className="snap-start">
             <button
@@ -61,8 +66,8 @@ const PresetsPanel: React.FC = () => {
               }}
               onClick={() => handlePresetChange(preset)}
             >
-              <button 
-                className={`absolute -top-1 -right-1 bg-black/50 p-1 rounded-full 
+              <div 
+                className={`absolute -top-1 -right-1 bg-black/50 p-1 rounded-full cursor-pointer
                   opacity-${activePreset.id === preset.id || isFavorite(preset.id) ? '100' : '0'}
                   group-hover:opacity-100 transition-opacity`}
                 onClick={(e) => {
@@ -75,9 +80,9 @@ const PresetsPanel: React.FC = () => {
                   fill={isFavorite(preset.id) ? 'white' : 'none'} 
                   color="white" 
                 />
-              </button>
+              </div>
             </button>
-            <p className="mt-1 w-16 text-xs text-center truncate">{preset.name}</p>
+            <p className="text-xs text-center mt-1 truncate w-16">{preset.name}</p>
           </div>
         ))}
       </div>
