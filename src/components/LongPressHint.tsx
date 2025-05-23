@@ -37,7 +37,7 @@ const LongPressHint: React.FC<LongPressHintProps> = ({ show, onClose }) => {
       }`}
       onClick={handleClick}
     >
-      <div className="flex flex-col items-center p-4 bg-white/10 backdrop-blur-lg rounded-xl">
+      <div className="flex flex-col items-center p-4 rounded-xl backdrop-blur-lg bg-white/10">
         {/* 手指长按动画 */}
         <div className="relative mb-3">
           {/* 手指长按图标 */}
@@ -65,12 +65,12 @@ const LongPressHint: React.FC<LongPressHintProps> = ({ show, onClose }) => {
           </svg>
           
           {/* 波纹动画 */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/30 animate-ping" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border border-white/50 animate-ping animation-delay-300" />
+          <div className="absolute top-1/2 left-1/2 w-12 h-12 rounded-full border animate-ping -translate-x-1/2 -translate-y-1/2 border-white/30" />
+          <div className="absolute top-1/2 left-1/2 w-10 h-10 rounded-full border animate-ping -translate-x-1/2 -translate-y-1/2 border-white/50 animation-delay-300" />
         </div>
         
         {/* 保存图标和文本 */}
-        <div className="flex items-center gap-2 animate-pulse">
+        <div className="flex gap-2 items-center animate-pulse">
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
             width="20" 
@@ -87,7 +87,7 @@ const LongPressHint: React.FC<LongPressHintProps> = ({ show, onClose }) => {
             <polyline points="17 21 17 13 7 13 7 21" />
             <polyline points="7 3 7 8 15 8" />
           </svg>
-          <span className="text-sm text-white">长按图片可保存到相册</span>
+          <span className="text-sm text-white">长按图片可保存到手机相册中</span>
         </div>
       </div>
     </div>

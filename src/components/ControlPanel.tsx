@@ -6,7 +6,7 @@ import PresetsPanel from './PresetsPanel';
 import CustomPanel from './CustomPanel';
 import FavoritesPanel from './FavoritesPanel';
 import LongPressHint from './LongPressHint';
-import { Palette, Sliders, Heart, Image, X, Coffee, HelpCircle } from 'lucide-react';
+import { Palette, Sliders, Heart, Image, X, Coffee, HelpCircle, Trash2, CheckCircle2, Square, CheckSquare } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
 import zanshang from '../assets/images/zanshang.jpg';
 
@@ -14,10 +14,12 @@ type Tab = 'presets' | 'custom' | 'favorites' | 'photos' | 'settings';
 
 const ControlPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('presets');
-  const { capturedPhotos, previewPhoto, setPreviewPhoto } = useCamera();
+  const { capturedPhotos, previewPhoto, setPreviewPhoto, deletePhoto, deleteMultiplePhotos } = useCamera();
   const { isGuideEnabled, toggleGuide, checkAllHintsShown, clearGuideHistory } = useGuide();
   const [showDonation, setShowDonation] = useState(false);
   const [showLongPressHint, setShowLongPressHint] = useState(false);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<number[]>([]);
   
   // 检查是否已经显示过提示
   useEffect(() => {
@@ -28,6 +30,13 @@ const ControlPanel: React.FC = () => {
       setShowLongPressHint(true);
     }
   }, [activeTab, capturedPhotos.length]);
+  
+  // 切换标签页时退出多选模式
+  useEffect(() => {
+    if (activeTab !== 'photos') {
+      exitMultiSelectMode();
+    }
+  }, [activeTab]);
   
   const handleLongPressHintClose = () => {
     setShowLongPressHint(false);
@@ -43,6 +52,9 @@ const ControlPanel: React.FC = () => {
   };
 
   const handlePreviewPhoto = (photo: string | null) => {
+    // 多选模式下不打开预览
+    if (isMultiSelectMode) return;
+    
     setPreviewPhoto(photo);
     trackEvent('Photos', photo ? 'open_preview' : 'close_preview');
   };
@@ -63,6 +75,55 @@ const ControlPanel: React.FC = () => {
     // 这里可以实现实际的保存到相册功能
     // 为演示目的，仅显示提示
     trackEvent('Photos', 'save_to_gallery');
+  };
+  
+  // 切换多选模式
+  const toggleMultiSelectMode = () => {
+    if (isMultiSelectMode) {
+      exitMultiSelectMode();
+    } else {
+      setIsMultiSelectMode(true);
+      trackEvent('Photos', 'enter_multi_select');
+    }
+  };
+  
+  // 退出多选模式
+  const exitMultiSelectMode = () => {
+    setIsMultiSelectMode(false);
+    setSelectedPhotos([]);
+    trackEvent('Photos', 'exit_multi_select');
+  };
+  
+  // 选择/取消选择照片
+  const togglePhotoSelection = (index: number) => {
+    setSelectedPhotos(prev => {
+      if (prev.includes(index)) {
+        return prev.filter(i => i !== index);
+      } else {
+        return [...prev, index];
+      }
+    });
+  };
+  
+  // 全选/取消全选
+  const toggleSelectAll = () => {
+    if (selectedPhotos.length === capturedPhotos.length) {
+      // 全部取消选择
+      setSelectedPhotos([]);
+    } else {
+      // 全选
+      setSelectedPhotos(capturedPhotos.map((_, index) => index));
+    }
+  };
+  
+  // 修改删除选中的照片函数，直接执行删除
+  const handleDeleteSelected = () => {
+    if (selectedPhotos.length === 0) return;
+    
+    // 直接删除选中的照片
+    deleteMultiplePhotos(selectedPhotos);
+    exitMultiSelectMode();
+    trackEvent('Photos', 'delete_multiple_photos', selectedPhotos.length.toString());
   };
   
   // 切换引导状态
@@ -141,7 +202,52 @@ const ControlPanel: React.FC = () => {
         {activeTab === 'favorites' && <FavoritesPanel />}
         {activeTab === 'photos' && (
           <div className="relative">
-            <h3 className="mb-3 text-sm text-white/80">已拍摄的照片</h3>
+            {/* 照片列表标题栏和操作区 */}
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm text-white/80">已拍摄的照片</h3>
+              
+              {capturedPhotos.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  {isMultiSelectMode ? (
+                    <>
+                      <button 
+                        className="px-2 py-1 text-xs rounded-md transition-colors bg-white/10 hover:bg-white/20"
+                        onClick={toggleSelectAll}
+                      >
+                        {selectedPhotos.length === capturedPhotos.length ? '取消全选' : '全选'}
+                      </button>
+                      
+                      <button 
+                        className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                          selectedPhotos.length > 0 
+                            ? 'bg-red-500 hover:bg-red-600' 
+                            : 'bg-white/10 opacity-50 cursor-not-allowed'
+                        }`}
+                        onClick={handleDeleteSelected}
+                        disabled={selectedPhotos.length === 0}
+                      >
+                        删除选中({selectedPhotos.length})
+                      </button>
+                      
+                      <button 
+                        className="px-2 py-1 text-xs rounded-md transition-colors bg-white/10 hover:bg-white/20"
+                        onClick={exitMultiSelectMode}
+                      >
+                        取消
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      className="px-2 py-1 text-xs rounded-md transition-colors bg-white/10 hover:bg-white/20"
+                      onClick={toggleMultiSelectMode}
+                    >
+                      多选
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            
             {capturedPhotos.length === 0 ? (
               <div className="py-6 text-center">
                 <p className="text-white/70">还没有拍摄照片</p>
@@ -154,13 +260,16 @@ const ControlPanel: React.FC = () => {
                 {capturedPhotos.map((photo, index) => (
                   <div 
                     key={index}
-                    className="relative aspect-square rounded-lg overflow-hidden bg-black/30 
-                      backdrop-blur-sm border border-white/20 hover:border-white/40 
-                      transition-all duration-200 transform hover:scale-[1.02]"
+                    className={`relative aspect-square rounded-lg overflow-hidden bg-black/30 
+                      backdrop-blur-sm ${
+                        isMultiSelectMode && selectedPhotos.includes(index)
+                          ? 'border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.7)] z-10' 
+                          : 'border border-white/20 hover:border-white/40'
+                      } transition-all duration-200 transform hover:scale-[1.02]`}
                   >
                     <button
                       className="w-full h-full"
-                      onClick={() => handlePreviewPhoto(photo)}
+                      onClick={() => isMultiSelectMode ? togglePhotoSelection(index) : handlePreviewPhoto(photo)}
                       onContextMenu={(e) => handleLongPress(e, photo)}
                     >
                       <img 
@@ -168,6 +277,8 @@ const ControlPanel: React.FC = () => {
                         alt={`照片 ${index + 1}`}
                         className="object-cover w-full h-full"
                       />
+                      
+                      {/* 删除多选模式下的选择指示器 */}
                     </button>
                   </div>
                 ))}
@@ -194,7 +305,7 @@ const ControlPanel: React.FC = () => {
                   <p className="text-xs text-white/60">重新查看应用功能引导</p>
                 </div>
                 <button
-                  className="px-4 py-2 mt-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 mt-2 text-sm font-medium text-white bg-blue-600 rounded-lg transition-colors hover:bg-blue-700"
                   onClick={() => {
                     clearGuideHistory();
                     toggleGuide(true);
@@ -253,6 +364,22 @@ const ControlPanel: React.FC = () => {
           >
             <X size={24} />
           </button>
+          
+          {/* 删除预览照片按钮 */}
+          <button 
+            className="absolute top-4 left-4 p-2 rounded-full transition-colors bg-black/50 hover:bg-red-500/80"
+            onClick={(e) => {
+              e.stopPropagation();
+              // 找到当前预览照片的索引
+              const photoIndex = capturedPhotos.findIndex(photo => photo === previewPhoto);
+              if (photoIndex !== -1) {
+                deletePhoto(photoIndex);
+              }
+            }}
+          >
+            <Trash2 size={24} />
+          </button>
+          
           <img 
             src={previewPhoto} 
             alt="预览" 

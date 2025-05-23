@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useState, useEffect } from 'react';
+import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 interface CameraContextType {
@@ -10,6 +10,8 @@ interface CameraContextType {
   capturedPhotos: string[];
   previewPhoto: string | null;
   setPreviewPhoto: (photo: string | null) => void;
+  deletePhoto: (photoIndex: number) => void;
+  deleteMultiplePhotos: (photoIndexes: number[]) => void;
 }
 
 const CameraContext = createContext<CameraContextType | undefined>(undefined);
@@ -130,6 +132,78 @@ export const CameraProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return photos;
   };
   
+  const deletePhoto = useCallback((photoIndex: number) => {
+    // 获取要删除的照片
+    const photoToDelete = capturedPhotos[photoIndex];
+    
+    // 先检查是否需要关闭预览，并在状态更新前关闭
+    if (previewPhoto === photoToDelete) {
+      setPreviewPhoto(null);
+    }
+    
+    // 更新照片数组
+    setCapturedPhotos(prev => {
+      const newPhotos = [...prev];
+      newPhotos.splice(photoIndex, 1);
+      
+      // 仅在这里显示一次成功提示
+      setTimeout(() => {
+        toast.success('照片已删除', {
+          style: {
+            background: 'rgba(0, 0, 0, 0.8)',
+            color: '#fff',
+            backdropFilter: 'blur(10px)',
+          },
+          iconTheme: {
+            primary: '#fff',
+            secondary: '#000',
+          },
+        });
+      }, 0);
+      
+      return newPhotos;
+    });
+  }, [capturedPhotos, previewPhoto]);
+  
+  const deleteMultiplePhotos = useCallback((photoIndexes: number[]) => {
+    // 对索引进行排序并从大到小删除，避免删除时索引变化的问题
+    const sortedIndexes = [...photoIndexes].sort((a, b) => b - a);
+    
+    // 检查是否需要关闭预览
+    const photosToDelete = sortedIndexes.map(index => capturedPhotos[index]);
+    
+    if (previewPhoto && photosToDelete.includes(previewPhoto)) {
+      setPreviewPhoto(null);
+    }
+    
+    // 更新照片数组
+    setCapturedPhotos(prev => {
+      const newPhotos = [...prev];
+      
+      // 依次删除照片
+      sortedIndexes.forEach(index => {
+        newPhotos.splice(index, 1);
+      });
+      
+      // 仅在这里显示一次成功提示
+      setTimeout(() => {
+        toast.success(`已删除 ${photoIndexes.length} 张照片`, {
+          style: {
+            background: 'rgba(0, 0, 0, 0.8)',
+            color: '#fff',
+            backdropFilter: 'blur(10px)',
+          },
+          iconTheme: {
+            primary: '#fff',
+            secondary: '#000',
+          },
+        });
+      }, 0);
+      
+      return newPhotos;
+    });
+  }, [capturedPhotos, previewPhoto]);
+  
   const value = {
     videoRef,
     isLoading,
@@ -138,7 +212,9 @@ export const CameraProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     captureMultiple,
     capturedPhotos,
     previewPhoto,
-    setPreviewPhoto
+    setPreviewPhoto,
+    deletePhoto,
+    deleteMultiplePhotos
   };
   
   return (
